@@ -6,10 +6,18 @@
           <RouterLink to="/sales/orders" class="text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
             <ArrowLeft class="w-4 h-4" />
           </RouterLink>
-          <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">SO-2026-002</h1>
-          <StatusBadge status="PARTIAL" />
+          <template v-if="loading">
+            <Skeleton width="160px" height="1.5rem" />
+            <Skeleton width="100px" height="1.25rem" rounded="full" />
+          </template>
+          <template v-else>
+            <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">SO-2026-002</h1>
+            <StatusBadge status="PARTIAL" />
+          </template>
         </div>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400">CV Toko Furnitur Makmur · September 16, 2026</p>
+        <template v-if="!loading">
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">CV Toko Furnitur Makmur · September 16, 2026</p>
+        </template>
       </div>
       <div class="flex items-center gap-2">
         <RouterLink to="/sales/deliveries">
@@ -17,12 +25,12 @@
         </RouterLink>
       </div>
     </div>
-    <div class="grid grid-cols-3 gap-4 mb-4">
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Customer</p><p class="font-medium text-sm text-zinc-900 dark:text-white">CV Toko Furnitur Makmur</p></AppCard>
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Order Date</p><p class="font-medium text-sm text-zinc-900 dark:text-white">Sep 16, 2026</p></AppCard>
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Total</p><p class="font-bold text-zinc-900 dark:text-white">Rp 27.600.000</p></AppCard>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Customer</p><p class="font-medium text-sm text-zinc-900 dark:text-white">CV Toko Furnitur Makmur</p></AppCard>
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Order Date</p><p class="font-medium text-sm text-zinc-900 dark:text-white">Sep 16, 2026</p></AppCard>
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Total</p><p class="font-bold text-zinc-900 dark:text-white">Rp 27.600.000</p></AppCard>
     </div>
-    <AppCard class="mb-4">
+    <AppCard class="mb-4" :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Order Items</p>
       <table class="w-full text-sm">
         <thead>
@@ -49,7 +57,7 @@
     </AppCard>
 
     <!-- Activity Log -->
-    <AppCard>
+    <AppCard :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Activity Log</p>
       <div class="space-y-3">
         <div v-for="log in activityLog" :key="log.id" class="flex items-start gap-3">
@@ -64,11 +72,17 @@
   </div>
 </template>
 <script setup lang="ts">
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, PackageCheck } from 'lucide-vue-next'
 import AppButton from '../../components/ui/AppButton.vue'
 import AppCard from '../../components/ui/AppCard.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
+import Skeleton from '../../components/ui/Skeleton.vue'
+
+const loading = ref(true)
+setTimeout(() => { loading.value = false }, 500)
+
 const soItems = [
   { product: 'Sofa 3 Seater Minimalis', ordered: 3, reserved: 3, delivered: 2, price: 4500000 },
   { product: 'Lemari Pakaian 3 Pintu', ordered: 2, reserved: 2, delivered: 2, price: 3200000 },

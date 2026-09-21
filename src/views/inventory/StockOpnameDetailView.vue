@@ -6,10 +6,18 @@
           <RouterLink to="/inventory/opname" class="text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
             <ArrowLeft class="w-4 h-4" />
           </RouterLink>
-          <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">OP-2026-002</h1>
-          <StatusBadge status="COUNTING" />
+          <template v-if="loading">
+            <Skeleton width="160px" height="1.5rem" />
+            <Skeleton width="100px" height="1.25rem" rounded="full" />
+          </template>
+          <template v-else>
+            <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">OP-2026-002</h1>
+            <StatusBadge status="COUNTING" />
+          </template>
         </div>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400">Gudang Barang Jadi · Created by Andi Wijaya · September 20, 2026</p>
+        <template v-if="!loading">
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Gudang Barang Jadi · Created by Andi Wijaya · September 20, 2026</p>
+        </template>
       </div>
       <div class="flex items-center gap-2">
         <AppButton variant="outline" size="sm" @click="showApprove = true">
@@ -18,7 +26,7 @@
       </div>
     </div>
 
-    <AppCard>
+    <AppCard :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Physical Count</p>
       <table class="w-full text-sm">
         <thead>
@@ -52,7 +60,7 @@
     </AppCard>
 
     <!-- Activity Log -->
-    <AppCard class="mt-4">
+    <AppCard class="mt-4" :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Activity Log</p>
       <div class="space-y-3">
         <div v-for="log in activityLog" :key="log.id" class="flex items-start gap-3">
@@ -83,9 +91,15 @@ import AppCard from '../../components/ui/AppCard.vue'
 import AppInput from '../../components/ui/AppInput.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
+import Skeleton from '../../components/ui/Skeleton.vue'
 import { useUiStore } from '../../stores/ui'
+
 const uiStore = useUiStore()
+const loading = ref(true)
 const showApprove = ref(false)
+
+setTimeout(() => { loading.value = false }, 500)
+
 const opnameItems = reactive([
   { product: 'Sofa 3 Seater Minimalis', systemQty: 15, physicalQty: '15', unit: 'PCS' },
   { product: 'Lemari Pakaian 3 Pintu', systemQty: 8, physicalQty: '7', unit: 'PCS' },

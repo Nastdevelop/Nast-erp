@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageHeader title="Dashboard" :description="`Good morning, ${authStore.user?.name}`" />
+    <PageHeader title="Dashboard" :description="`Good morning, ${authStore.user?.name}`" :loading="loading" />
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -12,6 +12,7 @@
         icon-bg="bg-zinc-100 dark:bg-zinc-800"
         icon-color="text-zinc-600 dark:text-zinc-300"
         :trend="3"
+        :loading="loading"
       />
       <StatCard
         label="Low Stock Alert"
@@ -20,6 +21,7 @@
         :icon="AlertTriangle"
         icon-bg="bg-amber-50 dark:bg-amber-950"
         icon-color="text-amber-500"
+        :loading="loading"
       />
       <StatCard
         label="Production Today"
@@ -29,6 +31,7 @@
         icon-bg="bg-blue-50 dark:bg-blue-950"
         icon-color="text-blue-500"
         :trend="12"
+        :loading="loading"
       />
       <StatCard
         label="Pending Approval"
@@ -37,6 +40,7 @@
         :icon="Clock"
         icon-bg="bg-amber-50 dark:bg-amber-950"
         icon-color="text-amber-500"
+        :loading="loading"
       />
     </div>
 
@@ -49,6 +53,7 @@
         icon-bg="bg-emerald-50 dark:bg-emerald-950"
         icon-color="text-emerald-500"
         :trend="8"
+        :loading="loading"
       />
       <StatCard
         label="Purchase Value"
@@ -57,6 +62,7 @@
         :icon="ShoppingCart"
         icon-bg="bg-zinc-100 dark:bg-zinc-800"
         icon-color="text-zinc-500"
+        :loading="loading"
       />
       <StatCard
         label="Total Reject"
@@ -66,6 +72,7 @@
         icon-bg="bg-red-50 dark:bg-red-950"
         icon-color="text-red-500"
         :trend="-5"
+        :loading="loading"
       />
       <StatCard
         label="Est. Profit"
@@ -75,13 +82,14 @@
         icon-bg="bg-emerald-50 dark:bg-emerald-950"
         icon-color="text-emerald-500"
         :trend="15"
+        :loading="loading"
       />
     </div>
 
     <!-- Middle row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
       <!-- Production Overview -->
-      <AppCard class="lg:col-span-2">
+      <AppCard class="lg:col-span-2" :loading="loading">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold text-zinc-900 dark:text-white text-sm">Production This Month</h3>
           <AppBadge variant="info">September 2026</AppBadge>
@@ -104,7 +112,7 @@
       </AppCard>
 
       <!-- Inventory Alert -->
-      <AppCard>
+      <AppCard :loading="loading">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold text-zinc-900 dark:text-white text-sm">Inventory Alert</h3>
           <RouterLink to="/inventory" class="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-white">View all</RouterLink>
@@ -129,7 +137,7 @@
     <!-- Bottom row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Pending Approvals -->
-      <AppCard>
+      <AppCard :loading="loading">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold text-zinc-900 dark:text-white text-sm">Pending Approvals</h3>
           <AppBadge variant="warning">5 pending</AppBadge>
@@ -151,7 +159,7 @@
       </AppCard>
 
       <!-- Recent Activity -->
-      <AppCard>
+      <AppCard :loading="loading">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold text-zinc-900 dark:text-white text-sm">Recent Activity</h3>
         </div>
@@ -170,6 +178,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   Package, AlertTriangle, Factory, Clock, ShoppingBag, ShoppingCart,
@@ -183,6 +192,8 @@ import AppButton from '../components/ui/AppButton.vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
+const loading = ref(true)
+setTimeout(() => { loading.value = false }, 500)
 
 const productionOverview = [
   { product: 'Sofa 3 Seater Minimalis', produced: 10, target: 35 },

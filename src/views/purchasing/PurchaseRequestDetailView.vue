@@ -7,10 +7,18 @@
           <RouterLink to="/purchasing/requests" class="text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
             <ArrowLeft class="w-4 h-4" />
           </RouterLink>
-          <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">PR-2026-002</h1>
-          <StatusBadge status="SUBMITTED" />
+          <template v-if="loading">
+            <Skeleton width="160px" height="1.5rem" />
+            <Skeleton width="120px" height="1.25rem" rounded="full" />
+          </template>
+          <template v-else>
+            <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">PR-2026-002</h1>
+            <StatusBadge status="SUBMITTED" />
+          </template>
         </div>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400">Requested by Sari Dewi · September 15, 2026</p>
+        <template v-if="!loading">
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Requested by Sari Dewi · September 15, 2026</p>
+        </template>
       </div>
       <div class="flex items-center gap-2">
         <AppButton variant="danger" size="sm" @click="showReject = true">
@@ -22,23 +30,23 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-4 mb-4">
-      <AppCard>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <AppCard :loading="loading">
         <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">PR Number</p>
         <p class="font-mono font-semibold text-zinc-900 dark:text-white">PR-2026-002</p>
       </AppCard>
-      <AppCard>
+      <AppCard :loading="loading">
         <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Status</p>
         <StatusBadge status="SUBMITTED" />
       </AppCard>
-      <AppCard>
+      <AppCard :loading="loading">
         <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Request Date</p>
         <p class="font-medium text-zinc-900 dark:text-white">September 15, 2026</p>
       </AppCard>
     </div>
 
     <!-- Items -->
-    <AppCard class="mb-4">
+    <AppCard class="mb-4" :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Requested Items</p>
       <table class="w-full text-sm">
         <thead>
@@ -63,7 +71,7 @@
     </AppCard>
 
     <!-- Activity Log -->
-    <AppCard class="mb-4">
+    <AppCard class="mb-4" :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Activity Log</p>
       <div class="space-y-3">
         <div v-for="log in activityLog" :key="log.id" class="flex items-start gap-3">
@@ -108,11 +116,17 @@ import AppModal from '../../components/ui/AppModal.vue'
 import AppTextarea from '../../components/ui/AppTextarea.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
+import Skeleton from '../../components/ui/Skeleton.vue'
 import { useUiStore } from '../../stores/ui'
+
 const uiStore = useUiStore()
+const loading = ref(true)
 const showApprove = ref(false)
 const showReject = ref(false)
 const rejectReason = ref('')
+
+setTimeout(() => { loading.value = false }, 500)
+
 const prItems = [
   { material: 'Kayu Jati', qty: 200, unit: 'KG', price: 85000, notes: '' },
   { material: 'Busa Sofa Density 40', qty: 150, unit: 'KG', price: 32000, notes: 'Density 40 minimum' },

@@ -6,10 +6,18 @@
           <RouterLink to="/production/orders" class="text-zinc-500 hover:text-zinc-900 dark:hover:text-white">
             <ArrowLeft class="w-4 h-4" />
           </RouterLink>
-          <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">PRD-2026-001</h1>
-          <StatusBadge status="IN_PROGRESS" />
+          <template v-if="loading">
+            <Skeleton width="180px" height="1.5rem" />
+            <Skeleton width="100px" height="1.25rem" rounded="full" />
+          </template>
+          <template v-else>
+            <h1 class="text-xl font-semibold text-zinc-900 dark:text-white">PRD-2026-001</h1>
+            <StatusBadge status="IN_PROGRESS" />
+          </template>
         </div>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400">Sofa 3 Seater Minimalis · 35 PCS · Planned: Sep 25, 2026</p>
+        <template v-if="!loading">
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Sofa 3 Seater Minimalis · 35 PCS · Planned: Sep 25, 2026</p>
+        </template>
       </div>
       <div class="flex items-center gap-2">
         <AppButton variant="outline" size="sm"><ClipboardCheck class="w-3.5 h-3.5" />Material Check</AppButton>
@@ -19,14 +27,14 @@
 
     <!-- Info cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Product</p><p class="font-medium text-sm text-zinc-900 dark:text-white">Sofa 3 Seater</p></AppCard>
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Target Qty</p><p class="font-semibold text-zinc-900 dark:text-white">35 PCS</p></AppCard>
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Warehouse</p><p class="font-medium text-sm text-zinc-900 dark:text-white">WIP</p></AppCard>
-      <AppCard><p class="text-xs text-zinc-500 mb-1">Status</p><StatusBadge status="IN_PROGRESS" /></AppCard>
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Product</p><p class="font-medium text-sm text-zinc-900 dark:text-white">Sofa 3 Seater</p></AppCard>
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Target Qty</p><p class="font-semibold text-zinc-900 dark:text-white">35 PCS</p></AppCard>
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Warehouse</p><p class="font-medium text-sm text-zinc-900 dark:text-white">WIP</p></AppCard>
+      <AppCard :loading="loading"><p class="text-xs text-zinc-500 mb-1">Status</p><StatusBadge status="IN_PROGRESS" /></AppCard>
     </div>
 
     <!-- Material Requirements -->
-    <AppCard class="mb-4">
+    <AppCard class="mb-4" :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Material Requirements (Snapshot)</p>
       <table class="w-full text-sm">
         <thead>
@@ -54,7 +62,7 @@
     </AppCard>
 
     <!-- Activity Log -->
-    <AppCard>
+    <AppCard :loading="loading">
       <p class="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Activity Log</p>
       <div class="space-y-3">
         <div v-for="log in activityLog" :key="log.id" class="flex items-start gap-3">
@@ -100,10 +108,16 @@ import AppInput from '../../components/ui/AppInput.vue'
 import AppSelect from '../../components/ui/AppSelect.vue'
 import AppTextarea from '../../components/ui/AppTextarea.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
+import Skeleton from '../../components/ui/Skeleton.vue'
 import { useUiStore } from '../../stores/ui'
+
 const uiStore = useUiStore()
+const loading = ref(true)
 const showComplete = ref(false)
 const result = reactive({ good: '', reject: '', rejectReason: '', notes: '' })
+
+setTimeout(() => { loading.value = false }, 500)
+
 const materials = [
   { name: 'Kayu Jati', required: 420, reserved: 420, consumed: 0, unit: 'KG' },
   { name: 'Busa Sofa Density 40', required: 525, reserved: 525, consumed: 0, unit: 'KG' },
@@ -129,4 +143,3 @@ function saveResult() {
   showComplete.value = false
 }
 </script>
-
