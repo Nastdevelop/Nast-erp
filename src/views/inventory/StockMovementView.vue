@@ -7,7 +7,7 @@
       <AppInput v-model="filterDate" type="date" class="w-44" />
     </div>
 
-    <DataTable :columns="columns" :data="mockMovements" search-placeholder="Search..." :loading="loading" empty-message="No stock movements found.">
+    <DataTable :columns="columns" :data="movements" search-placeholder="Search..." :loading="loading" empty-message="No stock movements found.">
       <template #cell-type="{ value }">
         <div class="flex items-center gap-1.5">
           <span :class="['w-2 h-2 rounded-full', movementColor(value)]"></span>
@@ -23,19 +23,20 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppSelect from '../../components/ui/AppSelect.vue'
 import AppInput from '../../components/ui/AppInput.vue'
 import DataTable from '../../components/ui/DataTable.vue'
-import { mockMovements } from '../../data/mock'
+import { stockMovementsService } from '../../services/crud'
 
 const loading = ref(true)
 const filterType = ref('')
 const filterDate = ref('')
+const items = ref<any[]>([])
 
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+async function fetchList() { loading.value = true; try { const res = await stockMovementsService.list(); items.value = res.data } finally { loading.value = false } }
+onMounted(fetchList)
 
 const columns = [
   { key: 'date', label: 'Date' },
@@ -48,19 +49,28 @@ const columns = [
 ]
 
 const movementTypeOptions = [
-  { value: 'PURCHASE_IN', label: 'Purchase In' },
-  { value: 'PRODUCTION_IN', label: 'Production In' },
-  { value: 'PRODUCTION_OUT', label: 'Production Out' },
-  { value: 'SALES_OUT', label: 'Sales Out' },
-  { value: 'TRANSFER_IN', label: 'Transfer In' },
-  { value: 'TRANSFER_OUT', label: 'Transfer Out' },
-  { value: 'ADJUSTMENT_IN', label: 'Adjustment In' },
-  { value: 'ADJUSTMENT_OUT', label: 'Adjustment Out' },
+  { value: 'IN', label: 'In' },
+  { value: 'OUT', label: 'Out' },
+  { value: 'TRANSFER', label: 'Transfer' },
+  { value: 'ADJUSTMENT', label: 'Adjustment' },
 ]
 
+const movements = computed(() => {
+  let d = items.value
+  if (filterType.value) d = d.filter(m => m.type === filterType.value)
+  if (filterDate.value) d = d.filter(m => m.createdAt?.slice(0, 10) === filterDate.value)
+  return d.map(m => ({
+    ...m,
+    date: m.createdAt?.slice(0, 10),
+    product: m.product?.name ?? m.material?.name ?? '-',
+    warehouse: m.warehouse?.name ?? '-',
+    reference: m.referenceType ?? '-',
+  }))
+})
+
 function movementColor(type: string) {
-  if (type.includes('IN')) return 'bg-emerald-500'
-  if (type.includes('OUT') || type === 'REJECT') return 'bg-red-500'
+  if (type === 'IN') return 'bg-emerald-500'
+  if (type === 'OUT') return 'bg-red-500'
   return 'bg-zinc-400'
 }
 </script>

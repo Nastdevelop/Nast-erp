@@ -14,28 +14,37 @@
       <button v-for="t in ['Orders','Results','QC']" :key="t" @click="activeTab = t"
         :class="['px-4 py-2 text-sm border-b-2 -mb-px', activeTab === t ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white font-medium' : 'border-transparent text-zinc-500 hover:text-zinc-700']">{{ t }}</button>
     </div>
-    <DataTable v-if="activeTab === 'Orders'" :columns="orderColumns" :data="mockProductionOrders">
+    <DataTable v-if="activeTab === 'Orders'" :columns="orderColumns" :data="orders">
       <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
     </DataTable>
-    <DataTable v-else-if="activeTab === 'Results'" :columns="resultColumns" :data="mockProductionResults">
+    <DataTable v-else-if="activeTab === 'Results'" :columns="resultColumns" :data="results">
       <template #cell-goodQty="{ value }"><span class="text-emerald-600 font-medium">{{ value }}</span></template>
       <template #cell-rejectQty="{ value }"><span :class="value > 0 ? 'text-red-500 font-medium' : 'text-zinc-400'">{{ value }}</span></template>
     </DataTable>
-    <DataTable v-else :columns="qcColumns" :data="mockQCRecords">
+    <DataTable v-else :columns="qcColumns" :data="qc">
       <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
     </DataTable>
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, Factory, CheckCircle, XCircle, BarChart3 } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatCard from '../../components/ui/StatCard.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockProductionOrders, mockProductionResults, mockQCRecords } from '../../data/mock'
+import { productionOrdersService, productionResultsService, qualityControlService } from '../../services/crud'
 const activeTab = ref('Orders')
+const orders = ref<any[]>([])
+const results = ref<any[]>([])
+const qc = ref<any[]>([])
+onMounted(async () => {
+  const [o, r, q] = await Promise.all([productionOrdersService.list(), productionResultsService.list(), qualityControlService.list()])
+  orders.value = o.data.map(x => ({ ...x, number: x.code, product: x.product?.name, quantity: x.targetQuantity, plannedDate: x.plannedDate?.slice(0,10) }))
+  results.value = r.data.map(x => ({ ...x, productionOrder: x.productionOrder?.code, product: x.product?.name, targetQty: x.productionOrder?.targetQuantity, goodQty: Number(x.goodQuantity), rejectQty: Number(x.rejectQuantity), productionDate: x.createdAt?.slice(0,10) }))
+  qc.value = q.data.map(x => ({ ...x, productionOrder: x.productionResult?.productionOrderId ?? '-', product: x.productionResult?.productId ?? '-', goodQty: x.productionResult?.goodQuantity ?? 0, rejectQty: x.productionResult?.rejectQuantity ?? 0, checkedBy: x.inspectedBy }))
+})
 const orderColumns = [{ key:'number',label:'Order #'},{key:'product',label:'Product'},{key:'quantity',label:'Qty'},{key:'plannedDate',label:'Planned'},{key:'status',label:'Status'}]
 const resultColumns = [{ key:'productionOrder',label:'Order #'},{key:'product',label:'Product'},{key:'targetQty',label:'Target'},{key:'goodQty',label:'Good'},{key:'rejectQty',label:'Reject'},{key:'productionDate',label:'Date'}]
 const qcColumns = [{ key:'productionOrder',label:'Order #'},{key:'product',label:'Product'},{key:'goodQty',label:'Good'},{key:'rejectQty',label:'Reject'},{key:'checkedBy',label:'Checked By'},{key:'status',label:'Status'}]

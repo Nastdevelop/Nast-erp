@@ -13,7 +13,7 @@
         <SkeletonCard v-for="i in 2" :key="i" />
       </div>
     </template>
-    <template v-else-if="mockBoms.length === 0">
+    <template v-else-if="items.length === 0">
       <EmptyState
         title="No BOMs"
         description="Create your first bill of materials to define material requirements for products."
@@ -28,7 +28,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div
-        v-for="bom in mockBoms"
+        v-for="bom in items"
         :key="bom.id"
         class="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden"
       >
@@ -73,7 +73,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye, Pencil, FileText } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
@@ -81,10 +81,20 @@ import AppButton from '../../components/ui/AppButton.vue'
 import AppBadge from '../../components/ui/AppBadge.vue'
 import EmptyState from '../../components/ui/EmptyState.vue'
 import SkeletonCard from '../../components/ui/SkeletonCard.vue'
-import { mockBoms } from '../../data/mock'
+import { bomService } from '../../services/crud'
 
 const loading = ref(true)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+const items = ref<any[]>([])
+onMounted(async () => {
+  try {
+    const res = await bomService.list()
+    items.value = res.data.map(b => ({
+      id: b.id,
+      product: b.product?.name ?? '-',
+      productCode: b.product?.code ?? '-',
+      version: b.version,
+      items: (b.items ?? []).map((it: any) => ({ material: it.material?.name ?? '-', quantity: it.quantity, unit: it.unit })),
+    }))
+  } finally { loading.value = false }
+})
 </script>

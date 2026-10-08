@@ -8,7 +8,7 @@
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :data="mockProductionOrders" :loading="loading" empty-message="No production orders found. Create your first order to get started.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No production orders found. Create your first order to get started.">
       <template #empty-action>
         <RouterLink to="/production/orders/create">
           <AppButton><Plus class="w-3.5 h-3.5" />New Order</AppButton>
@@ -29,19 +29,19 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockProductionOrders } from '../../data/mock'
+import { productionOrdersService } from '../../services/crud'
 
 const loading = ref(true)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await productionOrdersService.list(); items.value = res.data.map(p => ({ ...p, number: p.code, product: p.product?.name ?? '-', warehouse: p.warehouse?.name ?? '-', quantity: p.targetQuantity, plannedDate: p.plannedDate?.slice(0,10) })) } finally { loading.value = false } }
+onMounted(fetchList)
 
 const columns = [
   { key: 'number', label: 'Order #' },

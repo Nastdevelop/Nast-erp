@@ -7,7 +7,7 @@
       <StatCard label="Total Overhead" value="Rp 2.09M" :icon="Settings" icon-bg="bg-amber-50 dark:bg-amber-950" icon-color="text-amber-500" :loading="loading" />
     </div>
 
-    <DataTable :columns="columns" :data="mockProductionCosts" :loading="loading" empty-message="No production costs found.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No production costs found.">
       <template #cell-productionOrder="{ value }">
         <span class="font-mono text-sm font-medium text-zinc-900 dark:text-white">{{ value }}</span>
       </template>
@@ -24,17 +24,30 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Layers, Users, Settings } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatCard from '../../components/ui/StatCard.vue'
-import { mockProductionCosts } from '../../data/mock'
+import { api } from '../../services/api'
 
 const loading = ref(true)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+const items = ref<any[]>([])
+onMounted(async () => {
+  try {
+    const res = await api.get('/reports/hpp')
+    items.value = (res.data.data?.rows ?? []).map((r: any) => ({
+      productionOrder: r.orderCode,
+      product: r.product,
+      qty: r.goodQuantity,
+      materialCost: r.materialCost,
+      laborCost: 0,
+      overheadCost: 0,
+      totalCost: r.materialCost,
+      hpp: r.hppPerUnit,
+    }))
+  } finally { loading.value = false }
+})
 
 const columns = [
   { key: 'productionOrder', label: 'Production Order' },

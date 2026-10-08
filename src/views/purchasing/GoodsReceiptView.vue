@@ -6,7 +6,7 @@
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :data="mockGoodsReceipts" :loading="loading" empty-message="No goods receipts found. Create your first receipt to get started.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No goods receipts found. Create your first receipt to get started.">
       <template #empty-action>
         <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />New Receipt</AppButton>
       </template>
@@ -23,8 +23,8 @@
     <AppModal v-model="showForm" title="New Goods Receipt" size="lg">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
-          <AppSelect v-model="form.po" label="Purchase Order" :options="poOptions" placeholder="Select PO" required />
-          <AppSelect v-model="form.warehouse" label="Warehouse" :options="warehouseOptions" placeholder="Select warehouse" required />
+          <AppSelect v-model="form.po" label="Purchase Order" :options="poOptions()" placeholder="Select PO" required />
+          <AppSelect v-model="form.warehouse" label="Warehouse" :options="warehouseOptions()" placeholder="Select warehouse" required />
         </div>
         <AppInput v-model="form.receivedAt" label="Received Date" type="date" />
         <div class="border-t border-zinc-100 dark:border-zinc-800 pt-4">
@@ -57,7 +57,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
@@ -66,15 +66,18 @@ import AppInput from '../../components/ui/AppInput.vue'
 import AppSelect from '../../components/ui/AppSelect.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import DataTable from '../../components/ui/DataTable.vue'
-import { mockGoodsReceipts } from '../../data/mock'
+import { goodsReceiptsService, suppliersService, warehousesService, purchaseOrdersService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 const loading = ref(true)
 const showForm = ref(false)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
-const form = reactive({ po: '', warehouse: '', receivedAt: '2026-09-21' })
+const items = ref<any[]>([])
+const suppliers = ref<any[]>([])
+const warehouses = ref<any[]>([])
+const pos = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const [g, s, w, p] = await Promise.all([goodsReceiptsService.list(), suppliersService.list(), warehousesService.list(), purchaseOrdersService.list()]); items.value = g.data.map(r => ({ ...r, number: r.code, purchaseOrder: r.supplier?.name ?? '-', warehouse: '-', receivedAt: r.receiptDate?.slice(0,10), items: r.items?.length ?? 0 })); suppliers.value = s.data; warehouses.value = w.data; pos.value = p.data } finally { loading.value = false } }
+onMounted(fetchList)
+const form = reactive({ supplier: '', po: '', warehouse: '', receivedAt: new Date().toISOString().slice(0,10) })
 const columns = [
   { key: 'number', label: 'GR Number' },
   { key: 'purchaseOrder', label: 'PO Reference' },
@@ -84,11 +87,14 @@ const columns = [
   { key: 'items', label: 'Items' },
   { key: 'actions', label: '' },
 ]
-const poOptions = [{ value: '1', label: 'PO-2026-002' }, { value: '2', label: 'PO-2026-003' }]
-const warehouseOptions = [{ value: '1', label: 'Gudang Bahan Baku Utama' }]
-const receiptItems = ref([
-  { material: 'Busa Sofa Density 40', ordered: 100, unit: 'KG', receive: '100' },
-  { material: 'Busa Sofa Density 30', ordered: 50, unit: 'KG', receive: '50' },
-])
-function save() { uiStore.addToast('success', 'Goods receipt saved. Stock updated.'); showForm.value = false }
+const poOptions = () => pos.value.map(p => ({ value: p.id, label: p.code }))
+const warehouseOptions = () => warehouses.value.map(w => ({ value: w.id, label: w.name }))
+const receiptItems = ref<any[]>([])
+function save() {
+  if (!form.po) { uiStore.addToast('error', 'PO required'); return }
+  const po = pos.value.find(p => p.id === form.po)
+  goodsReceiptsService.create({ supplierId: po?.supplierId, receiptDate: form.receivedAt, status: 'DRAFT' })
+    .then(() => { uiStore.addToast('success', 'Goods receipt saved.'); showForm.value = false; fetchList() })
+    .catch(e => uiStore.addToast('error', e.message))
+}
 </script>

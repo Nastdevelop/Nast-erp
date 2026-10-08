@@ -16,26 +16,35 @@
         {{ t }}
       </button>
     </div>
-    <DataTable v-if="activeTab === 'Purchase Requests'" :columns="prColumns" :data="mockPurchaseRequests">
+    <DataTable v-if="activeTab === 'Purchase Requests'" :columns="prColumns" :data="pr">
       <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
     </DataTable>
-    <DataTable v-else-if="activeTab === 'Purchase Orders'" :columns="poColumns" :data="mockPurchaseOrders">
+    <DataTable v-else-if="activeTab === 'Purchase Orders'" :columns="poColumns" :data="po">
       <template #cell-status="{ value }"><StatusBadge :status="value" /></template>
       <template #cell-total="{ value }">Rp {{ value.toLocaleString('id-ID') }}</template>
     </DataTable>
-    <DataTable v-else :columns="grColumns" :data="mockGoodsReceipts" />
+    <DataTable v-else :columns="grColumns" :data="gr" />
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, ShoppingCart, ClipboardList, Truck } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatCard from '../../components/ui/StatCard.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockPurchaseRequests, mockPurchaseOrders, mockGoodsReceipts } from '../../data/mock'
+import { purchaseRequestsService, purchaseOrdersService, goodsReceiptsService } from '../../services/crud'
 const activeTab = ref('Purchase Requests')
+const pr = ref<any[]>([])
+const po = ref<any[]>([])
+const gr = ref<any[]>([])
+onMounted(async () => {
+  const [p1, p2, g] = await Promise.all([purchaseRequestsService.list(), purchaseOrdersService.list(), goodsReceiptsService.list()])
+  pr.value = p1.data.map(r => ({ ...r, number: r.code, requestDate: r.requestDate?.slice(0,10), items: r.items?.length ?? 0 }))
+  po.value = p2.data.map(r => ({ ...r, number: r.code, orderDate: r.orderDate?.slice(0,10), supplier: r.supplier?.name, total: (r.items??[]).reduce((s:any,it:any)=>s+Number(it.quantity)*Number(it.unitPrice),0) }))
+  gr.value = g.data.map(r => ({ ...r, number: r.code, purchaseOrder: r.supplier?.name, receivedAt: r.receiptDate?.slice(0,10), warehouse: '-' }))
+})
 const prColumns = [{ key:'number',label:'PR #'},{key:'requestedBy',label:'Requested By'},{key:'requestDate',label:'Date'},{key:'items',label:'Items'},{key:'status',label:'Status'}]
 const poColumns = [{ key:'number',label:'PO #'},{key:'supplier',label:'Supplier'},{key:'orderDate',label:'Date'},{key:'total',label:'Total'},{key:'status',label:'Status'}]
 const grColumns = [{ key:'number',label:'GR #'},{key:'purchaseOrder',label:'PO Ref'},{key:'warehouse',label:'Warehouse'},{key:'receivedAt',label:'Date'},{key:'receivedBy',label:'Received By'}]

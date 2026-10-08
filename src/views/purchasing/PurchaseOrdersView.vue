@@ -5,7 +5,7 @@
         <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />New PO</AppButton>
       </template>
     </PageHeader>
-    <DataTable :columns="columns" :data="mockPurchaseOrders" :loading="loading" empty-message="No purchase orders found. Create your first order to get started.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No purchase orders found. Create your first order to get started.">
       <template #empty-action>
         <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />New PO</AppButton>
       </template>
@@ -29,8 +29,8 @@
 
     <AppModal v-model="showForm" title="Create Purchase Order" size="md">
       <div class="flex flex-col gap-4">
-        <AppSelect v-model="form.supplier" label="Supplier" :options="supplierOptions" placeholder="Select supplier" required />
-        <AppSelect v-model="form.pr" label="Based on Purchase Request" :options="prOptions" placeholder="Select PR (optional)" />
+        <AppSelect v-model="form.supplier" label="Supplier" :options="supplierOptions()" placeholder="Select supplier" required />
+        <AppSelect v-model="form.pr" label="Based on Purchase Request" :options="prOptions()" placeholder="Select PR (optional)" />
         <AppInput v-model="form.orderDate" label="Order Date" type="date" />
         <AppInput v-model="form.expectedDate" label="Expected Delivery Date" type="date" />
       </div>
@@ -42,7 +42,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
@@ -52,15 +52,17 @@ import AppInput from '../../components/ui/AppInput.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockPurchaseOrders } from '../../data/mock'
+import { purchaseOrdersService, suppliersService, purchaseRequestsService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 const loading = ref(true)
 const showForm = ref(false)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
-const form = reactive({ supplier: '', pr: '', orderDate: '2026-09-21', expectedDate: '' })
+const items = ref<any[]>([])
+const suppliers = ref<any[]>([])
+const prs = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const [po, s, pr] = await Promise.all([purchaseOrdersService.list(), suppliersService.list(), purchaseRequestsService.list()]); items.value = po.data.map(p => ({ ...p, number: p.code, supplier: p.supplier?.name ?? '-', orderDate: p.orderDate?.slice(0,10), expectedDate: p.expectedDate?.slice(0,10), total: (p.items ?? []).reduce((sum:any, it:any) => sum + Number(it.unitPrice) * Number(it.quantity), 0) })); suppliers.value = s.data; prs.value = pr.data } finally { loading.value = false } }
+onMounted(fetchList)
+const form = reactive({ supplier: '', pr: '', orderDate: new Date().toISOString().slice(0,10), expectedDate: '' })
 const columns = [
   { key: 'number', label: 'PO Number' },
   { key: 'supplier', label: 'Supplier' },
@@ -70,14 +72,12 @@ const columns = [
   { key: 'status', label: 'Status' },
   { key: 'actions', label: '' },
 ]
-const supplierOptions = [
-  { value: '1', label: 'PT Kayu Nusantara' },
-  { value: '2', label: 'CV Busa Sejahtera' },
-  { value: '3', label: 'PT Textile Mandiri' },
-]
-const prOptions = [
-  { value: '1', label: 'PR-2026-001' },
-  { value: '2', label: 'PR-2026-002' },
-]
-function save() { uiStore.addToast('success', 'Purchase order created.'); showForm.value = false }
+const supplierOptions = () => suppliers.value.map(s => ({ value: s.id, label: s.name }))
+const prOptions = () => prs.value.map(p => ({ value: p.id, label: p.code }))
+function save() {
+  if (!form.supplier) { uiStore.addToast('error', 'Supplier required'); return }
+  purchaseOrdersService.create({ supplierId: form.supplier, orderDate: form.orderDate, expectedDate: form.expectedDate, status: 'DRAFT' })
+    .then(() => { uiStore.addToast('success', 'Purchase order created.'); showForm.value = false; fetchList() })
+    .catch(e => uiStore.addToast('error', e.message))
+}
 </script>

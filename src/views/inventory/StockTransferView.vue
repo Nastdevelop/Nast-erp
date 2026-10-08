@@ -8,7 +8,7 @@
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :data="mockTransfers" :loading="loading" empty-message="No stock transfers found. Create your first transfer to get started.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No stock transfers found. Create your first transfer to get started.">
       <template #empty-action>
         <RouterLink to="/inventory/transfers/create">
           <AppButton><Plus class="w-3.5 h-3.5" />New Transfer</AppButton>
@@ -32,7 +32,7 @@
           <RouterLink :to="`/inventory/transfers/${row.id}`">
             <AppButton variant="ghost" size="sm"><Eye class="w-3.5 h-3.5" /></AppButton>
           </RouterLink>
-          <AppButton v-if="row.status === 'REQUESTED'" variant="ghost" size="sm">
+          <AppButton v-if="row.status === 'DRAFT' || row.status === 'PENDING'" variant="ghost" size="sm">
             <Check class="w-3.5 h-3.5 text-emerald-500" />
           </AppButton>
         </div>
@@ -41,19 +41,19 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye, ArrowRight, Check } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockTransfers } from '../../data/mock'
+import { stockTransfersService } from '../../services/crud'
 
 const loading = ref(true)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await stockTransfersService.list(); items.value = res.data.map(t => ({ ...t, number: t.code, source: t.sourceWarehouse?.name, destination: t.destinationWarehouse?.name, requestedBy: t.createdBy, requestedAt: t.transferDate?.slice(0,10), items: t.items?.length ?? 0 })) } finally { loading.value = false } }
+onMounted(fetchList)
 
 const columns = [
   { key: 'number', label: 'Transfer #' },

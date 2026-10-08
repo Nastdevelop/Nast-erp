@@ -39,25 +39,26 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockSalesOrders } from '../../data/mock'
+import { salesOrdersService } from '../../services/crud'
 
 const loading = ref(true)
 const activeTab = ref('ALL')
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await salesOrdersService.list(); items.value = res.data.map(o => ({ ...o, number: o.code, customer: o.customer?.name ?? '-', orderDate: o.orderDate?.slice(0,10), items: o.items?.length ?? 0, total: (o.items ?? []).reduce((s:any, it:any) => s + Number(it.unitPrice) * Number(it.quantity), 0) })) } finally { loading.value = false } }
+onMounted(fetchList)
 const tabs = [
   { value: 'ALL', label: 'All' },
   { value: 'DRAFT', label: 'Draft' },
   { value: 'CONFIRMED', label: 'Confirmed' },
   { value: 'PARTIAL', label: 'Partial' },
+  { value: 'DELIVERED', label: 'Delivered' },
   { value: 'COMPLETED', label: 'Completed' },
 ]
 const columns = [
@@ -70,6 +71,6 @@ const columns = [
   { key: 'actions', label: '' },
 ]
 const filteredOrders = computed(() =>
-  activeTab.value === 'ALL' ? mockSalesOrders : mockSalesOrders.filter(o => o.status === activeTab.value)
+  activeTab.value === 'ALL' ? items.value : items.value.filter(o => o.status === activeTab.value)
 )
 </script>

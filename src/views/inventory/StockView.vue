@@ -44,32 +44,36 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { BoxesIcon, AlertTriangle, Lock, CheckCircle } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppSelect from '../../components/ui/AppSelect.vue'
+import AppButton from '../../components/ui/AppButton.vue'
 import AppBadge from '../../components/ui/AppBadge.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatCard from '../../components/ui/StatCard.vue'
-import { mockStocks } from '../../data/mock'
+import { stockService } from '../../services/crud'
 
 const loading = ref(true)
 const filterWarehouse = ref('')
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await stockService.list(); items.value = res.data } finally { loading.value = false } }
 
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+onMounted(fetchList)
 const columns = [
   { key: 'product', label: 'Product' },
   { key: 'warehouse', label: 'Warehouse' },
   { key: 'quantity', label: 'Current Stock' },
-  { key: 'reservedQuantity', label: 'Reserved' },
-  { key: 'availableQty', label: 'Available' },
+  { key: 'unit', label: 'Unit' },
   { key: 'status', label: 'Status' },
 ]
-const warehouseOptions = [
-  { value: 'bb', label: 'Gudang Bahan Baku' },
-  { value: 'wip', label: 'Gudang WIP' },
-  { value: 'fg', label: 'Gudang Barang Jadi' },
-]
-const filteredStocks = computed(() => mockStocks)
+const warehouseOptions = computed(() => {
+  const names = [...new Set(items.value.map(s => s.warehouse?.name).filter(Boolean))]
+  return names.map(n => ({ value: n, label: n }))
+})
+const filteredStocks = computed(() => {
+  let d = items.value
+  if (filterWarehouse.value) d = d.filter(s => s.warehouse?.name === filterWarehouse.value)
+  return d.map(s => ({ ...s, product: s.product?.name ?? s.material?.name ?? '-', code: s.product?.code ?? s.material?.code ?? '-', warehouse: s.warehouse?.name ?? '-', reservedQuantity: 0, availableQty: s.quantity, unit: s.unit ?? '-' }))
+})
 </script>

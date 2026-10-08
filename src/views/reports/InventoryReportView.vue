@@ -16,18 +16,17 @@
       <StatCard label="Total Reserved" value="144" :icon="Lock" icon-bg="bg-blue-50 dark:bg-blue-950" icon-color="text-blue-500" />
       <StatCard label="Available Value" value="Rp 48.5M" :icon="DollarSign" icon-bg="bg-emerald-50 dark:bg-emerald-950" icon-color="text-emerald-500" />
     </div>
-    <DataTable :columns="columns" :data="mockStocks">
-      <template #cell-availableQty="{ row }">{{ row.quantity - row.reservedQuantity }} {{ row.unit }}</template>
+    <DataTable :columns="columns" :data="items">
+      <template #cell-availableQty="{ row }">{{ row.quantity }} {{ row.unit }}</template>
       <template #cell-status="{ row }">
-        <AppBadge v-if="(row.quantity - row.reservedQuantity) <= 5" variant="danger">Critical</AppBadge>
-        <AppBadge v-else-if="(row.quantity - row.reservedQuantity) <= 15" variant="warning">Low</AppBadge>
-        <AppBadge v-else variant="success">Normal</AppBadge>
+        <AppBadge v-if="row.status === 'LOW'" variant="warning">Low</AppBadge>
+        <AppBadge v-else variant="success">OK</AppBadge>
       </template>
     </DataTable>
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, BoxesIcon, AlertTriangle, Lock, DollarSign, Download } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
@@ -36,16 +35,22 @@ import AppInput from '../../components/ui/AppInput.vue'
 import AppBadge from '../../components/ui/AppBadge.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatCard from '../../components/ui/StatCard.vue'
-import { mockStocks } from '../../data/mock'
+import { api } from '../../services/api'
 const dateFrom = ref('2026-09-01')
 const dateTo = ref('2026-09-21')
+const items = ref<any[]>([])
+onMounted(async () => {
+  try {
+    const res = await api.get('/reports/inventory')
+    items.value = (res.data.data ?? []).map((r: any) => ({ ...r, product: r.name, code: r.code, warehouse: r.warehouse, quantity: r.quantity, reservedQuantity: 0, unit: r.unit }))
+  } catch {}
+})
 const columns = [
   { key: 'product', label: 'Product' },
   { key: 'code', label: 'Code' },
   { key: 'warehouse', label: 'Warehouse' },
   { key: 'quantity', label: 'Current' },
-  { key: 'reservedQuantity', label: 'Reserved' },
-  { key: 'availableQty', label: 'Available' },
+  { key: 'unit', label: 'Unit' },
   { key: 'status', label: 'Status' },
 ]
 </script>

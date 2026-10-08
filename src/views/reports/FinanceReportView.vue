@@ -5,10 +5,10 @@
       <PageHeader title="Finance Report" class="mb-0" />
     </div>
     <div class="grid grid-cols-4 gap-4 mb-6">
-      <StatCard label="Total Income" value="Rp 31.5M" :icon="TrendingUp" icon-bg="bg-emerald-50 dark:bg-emerald-950" icon-color="text-emerald-500" />
-      <StatCard label="Total Expense" value="Rp 11.0M" :icon="TrendingDown" icon-bg="bg-red-50 dark:bg-red-950" icon-color="text-red-500" />
+      <StatCard label="Total Income" :value="summary ? 'Rp ' + (summary.income/1e6).toFixed(1) + 'M' : '-'" :icon="TrendingUp" icon-bg="bg-emerald-50 dark:bg-emerald-950" icon-color="text-emerald-500" />
+      <StatCard label="Total Expense" :value="summary ? 'Rp ' + (summary.expense/1e6).toFixed(1) + 'M' : '-'" :icon="TrendingDown" icon-bg="bg-red-50 dark:bg-red-950" icon-color="text-red-500" />
       <StatCard label="Production Cost" value="Rp 19.5M" :icon="Factory" icon-bg="bg-amber-50 dark:bg-amber-950" icon-color="text-amber-500" />
-      <StatCard label="Est. Profit" value="Rp 20.5M" :icon="DollarSign" icon-bg="bg-blue-50 dark:bg-blue-950" icon-color="text-blue-500" />
+      <StatCard label="Est. Profit" :value="summary ? 'Rp ' + (summary.balance/1e6).toFixed(1) + 'M' : '-'" :icon="DollarSign" icon-bg="bg-blue-50 dark:bg-blue-950" icon-color="text-blue-500" />
     </div>
 
     <div class="grid grid-cols-2 gap-4 mb-4">
@@ -18,9 +18,9 @@
           <div>
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs text-zinc-500">Income</span>
-              <span class="text-xs font-medium text-emerald-600">Rp 31.5M</span>
+              <span class="text-xs font-medium text-emerald-600">{{ summary ? 'Rp ' + (summary.income/1e6).toFixed(1) + 'M' : '-' }}</span>
             </div>
-            <div class="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full"><div class="h-full bg-emerald-500 rounded-full" style="width:74%"></div></div>
+            <div class="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full"><div class="h-full bg-emerald-500 rounded-full" :style="{ width: summary ? (summary.income / (summary.income + summary.expense || 1) * 100) + '%' : '0%' }"></div></div>
           </div>
           <div>
             <div class="flex items-center justify-between mb-1">
@@ -60,7 +60,7 @@
       </AppCard>
     </div>
 
-    <DataTable :columns="columns" :data="mockTransactions">
+    <DataTable :columns="columns" :data="items">
       <template #cell-type="{ value }"><StatusBadge :status="value" /></template>
       <template #cell-amount="{ row }">
         <span :class="row.type === 'INCOME' ? 'text-emerald-600 font-semibold' : 'text-red-500 font-semibold'">
@@ -71,6 +71,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Factory } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
@@ -78,6 +79,15 @@ import AppCard from '../../components/ui/AppCard.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatCard from '../../components/ui/StatCard.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockTransactions } from '../../data/mock'
+import { api } from '../../services/api'
+const summary = ref<any>(null)
+const items = ref<any[]>([])
+onMounted(async () => {
+  try {
+    const res = await api.get('/reports/finance')
+    summary.value = res.data.data
+    items.value = (res.data.data?.transactions ?? []).map((t: any) => ({ ...t, date: t.transactionDate?.slice(0,10), amount: Number(t.amount), reference: t.referenceId ?? '-' }))
+  } catch {}
+})
 const columns = [{ key:'date',label:'Date'},{key:'type',label:'Type'},{key:'referenceType',label:'Ref Type'},{key:'reference',label:'Ref'},{key:'description',label:'Description'},{key:'amount',label:'Amount'}]
 </script>

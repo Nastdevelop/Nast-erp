@@ -50,27 +50,28 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Plus, Eye, Pencil } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockPurchaseRequests } from '../../data/mock'
+import { purchaseRequestsService } from '../../services/crud'
 
 const loading = ref(true)
 const activeTab = ref('ALL')
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await purchaseRequestsService.list(); items.value = res.data.map(r => ({ ...r, number: r.code, requestDate: r.requestDate?.slice(0,10), items: r.items?.length ?? 0 })) } finally { loading.value = false } }
+onMounted(fetchList)
 
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
-const tabs = [
-  { value: 'ALL', label: 'All', count: mockPurchaseRequests.length },
-  { value: 'DRAFT', label: 'Draft', count: mockPurchaseRequests.filter(r => r.status === 'DRAFT').length },
-  { value: 'SUBMITTED', label: 'Pending', count: mockPurchaseRequests.filter(r => r.status === 'SUBMITTED').length },
-  { value: 'APPROVED', label: 'Approved', count: 0 },
-  { value: 'REJECTED', label: 'Rejected', count: 0 },
-]
+const tabs = computed(() => [
+  { value: 'ALL', label: 'All', count: items.value.length },
+  { value: 'DRAFT', label: 'Draft', count: items.value.filter(r => r.status === 'DRAFT').length },
+  { value: 'SUBMITTED', label: 'Pending', count: items.value.filter(r => r.status === 'SUBMITTED').length },
+  { value: 'APPROVED', label: 'Approved', count: items.value.filter(r => r.status === 'APPROVED').length },
+  { value: 'REJECTED', label: 'Rejected', count: items.value.filter(r => r.status === 'REJECTED').length },
+])
 
 const columns = [
   { key: 'number', label: 'PR Number' },
@@ -83,6 +84,6 @@ const columns = [
 ]
 
 const filteredRequests = computed(() =>
-  activeTab.value === 'ALL' ? mockPurchaseRequests : mockPurchaseRequests.filter(r => r.status === activeTab.value)
+  activeTab.value === 'ALL' ? items.value : items.value.filter(r => r.status === activeTab.value)
 )
 </script>

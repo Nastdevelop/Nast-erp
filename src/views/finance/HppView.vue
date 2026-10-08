@@ -56,10 +56,25 @@
   </div>
 </template>
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppCard from '../../components/ui/AppCard.vue'
-const hppData = [
-  { product: 'Kursi Makan Jati', orderRef: 'PRD-2026-003', qty: 33, materialCost: 5800000, laborCost: 1650000, overhead: 990000, totalCost: 8440000, hpp: 255757 },
-  { product: 'Sofa 3 Seater Minimalis', orderRef: 'PRD-2026-001', qty: 10, materialCost: 8500000, laborCost: 1500000, overhead: 1100000, totalCost: 11100000, hpp: 1110000 },
-]
+import { api } from '../../services/api'
+
+const hppData = ref<any[]>([])
+onMounted(async () => {
+  try {
+    const res = await api.get('/reports/hpp')
+    hppData.value = (res.data.data?.rows ?? []).map((r: any) => ({
+      product: r.product,
+      orderRef: r.orderCode,
+      qty: r.goodQuantity,
+      materialCost: r.materialCost,
+      laborCost: 0,
+      overhead: 0,
+      totalCost: r.materialCost,
+      hpp: r.hppPerUnit,
+    }))
+  } catch {}
+})
 </script>

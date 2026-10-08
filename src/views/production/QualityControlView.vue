@@ -1,7 +1,7 @@
 <template>
   <div>
     <PageHeader title="Quality Control" description="Inspect and approve production results" :loading="loading" />
-    <DataTable :columns="columns" :data="mockQCRecords" :loading="loading" empty-message="No QC records found.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No QC records found.">
       <template #cell-productionOrder="{ value }">
         <span class="font-mono text-sm font-medium text-zinc-900 dark:text-white">{{ value }}</span>
       </template>
@@ -23,20 +23,20 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Check } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockQCRecords } from '../../data/mock'
+import { qualityControlService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 
 const loading = ref(true)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await qualityControlService.list(); items.value = res.data.map(q => ({ ...q, productionOrder: q.productionResult?.productionOrderId ?? '-', product: q.productionResult?.productId ?? '-', goodQty: q.productionResult?.goodQuantity ?? 0, rejectQty: q.productionResult?.rejectQuantity ?? 0, checkedBy: q.inspectedBy, checkedAt: q.inspectDate?.slice(0,10) })) } finally { loading.value = false } }
+onMounted(fetchList)
 
 const columns = [
   { key: 'productionOrder', label: 'Production Order' },
@@ -49,7 +49,7 @@ const columns = [
   { key: 'notes', label: 'Notes' },
   { key: 'actions', label: '' },
 ]
-function approve(row: any) {
-  uiStore.addToast('success', `QC approved. ${row.goodQty} units added to finished goods.`)
+async function approve(row: any) {
+  try { await qualityControlService.update(row.id, { status: 'APPROVED' }); uiStore.addToast('success', `QC approved.`); await fetchList() } catch (e: any) { uiStore.addToast('error', e.message) }
 }
 </script>

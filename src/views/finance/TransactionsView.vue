@@ -7,13 +7,13 @@
     </PageHeader>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <StatCard label="Total Income" value="Rp 31.5M" :icon="TrendingUp" icon-bg="bg-emerald-50 dark:bg-emerald-950" icon-color="text-emerald-500" :loading="loading" />
-      <StatCard label="Total Expense" value="Rp 11.0M" :icon="TrendingDown" icon-bg="bg-red-50 dark:bg-red-950" icon-color="text-red-500" :loading="loading" />
-      <StatCard label="Net Balance" value="Rp 20.5M" :icon="DollarSign" icon-bg="bg-blue-50 dark:bg-blue-950" icon-color="text-blue-500" :loading="loading" />
-      <StatCard label="This Month Txn" value="4" :icon="Receipt" icon-bg="bg-zinc-100 dark:bg-zinc-800" icon-color="text-zinc-600 dark:text-zinc-300" :loading="loading" />
+      <StatCard label="Total Income" :value="'Rp ' + (totals.income/1e6).toFixed(1) + 'M'" :icon="TrendingUp" icon-bg="bg-emerald-50 dark:bg-emerald-950" icon-color="text-emerald-500" :loading="loading" />
+      <StatCard label="Total Expense" :value="'Rp ' + (totals.expense/1e6).toFixed(1) + 'M'" :icon="TrendingDown" icon-bg="bg-red-50 dark:bg-red-950" icon-color="text-red-500" :loading="loading" />
+      <StatCard label="Net Balance" :value="'Rp ' + (totals.net/1e6).toFixed(1) + 'M'" :icon="DollarSign" icon-bg="bg-blue-50 dark:bg-blue-950" icon-color="text-blue-500" :loading="loading" />
+      <StatCard label="This Month Txn" :value="String(totals.count)" :icon="Receipt" icon-bg="bg-zinc-100 dark:bg-zinc-800" icon-color="text-zinc-600 dark:text-zinc-300" :loading="loading" />
     </div>
 
-    <DataTable :columns="columns" :data="mockTransactions" :loading="loading" empty-message="No transactions found. Add your first transaction to get started.">
+    <DataTable :columns="columns" :data="items" :loading="loading" empty-message="No transactions found. Add your first transaction to get started.">
       <template #empty-action>
         <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />Add Transaction</AppButton>
       </template>
@@ -47,7 +47,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { TrendingUp, TrendingDown, DollarSign, Receipt } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
@@ -57,15 +57,20 @@ import AppModal from '../../components/ui/AppModal.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import StatCard from '../../components/ui/StatCard.vue'
-import { mockTransactions } from '../../data/mock'
+import { transactionsService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 const loading = ref(true)
 const showForm = ref(false)
-
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
-const form = reactive({ type: '', refType: '', amount: '', date: '2026-09-21', description: '' })
+const items = ref<any[]>([])
+async function fetchList() { loading.value = true; try { const res = await transactionsService.list(); items.value = res.data.map(t => ({ ...t, date: t.transactionDate?.slice(0,10), reference: t.referenceId ?? '-', amount: Number(t.amount) })) } finally { loading.value = false } }
+onMounted(fetchList)
+const totals = computed(() => {
+  const income = items.value.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0)
+  const expense = items.value.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0)
+  return { income, expense, net: income - expense, count: items.value.length }
+})
+const form = reactive({ type: '', refType: '', amount: '', date: new Date().toISOString().slice(0,10), description: '' })
 const columns = [
   { key: 'date', label: 'Date' },
   { key: 'type', label: 'Type' },
@@ -81,5 +86,10 @@ const refTypeOptions = [
   { value: 'PRODUCTION', label: 'Production' },
   { value: 'OTHER', label: 'Other' },
 ]
-function save() { uiStore.addToast('success', 'Transaction saved.'); showForm.value = false }
+function save() {
+  if (!form.type || !form.amount) { uiStore.addToast('error', 'Type and amount required'); return }
+  transactionsService.create({ type: form.type, referenceType: form.refType, amount: Number(form.amount), description: form.description, transactionDate: form.date })
+    .then(() => { uiStore.addToast('success', 'Transaction saved.'); showForm.value = false; fetchList() })
+    .catch(e => uiStore.addToast('error', e.message))
+}
 </script>

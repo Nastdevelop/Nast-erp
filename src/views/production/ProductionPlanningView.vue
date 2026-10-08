@@ -88,18 +88,33 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Factory, AlertTriangle, CheckCircle, Pencil } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
 import AppCard from '../../components/ui/AppCard.vue'
 import StatCard from '../../components/ui/StatCard.vue'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.vue'
-import { mockProductionPlanning } from '../../data/mock'
+import { productsService, stockService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 const showCreate = ref(false)
-const planningItems = ref(mockProductionPlanning.map(p => ({ ...p, editTarget: null as number | null })))
+const planningItems = ref<any[]>([])
+async function fetchList() {
+  try {
+    const [p, s] = await Promise.all([productsService.list(), stockService.list()])
+    const stockByProduct: Record<string, number> = {}
+    for (const st of s.data) {
+      if (st.productId) stockByProduct[st.productId] = (stockByProduct[st.productId] ?? 0) + Number(st.quantity)
+    }
+    planningItems.value = p.data.map(p => {
+      const currentStock = stockByProduct[p.id] ?? 0
+      const targetStock = Number(p.minStock) * 5 || 10
+      return { id: p.id, product: p.name, code: p.code, currentStock, targetStock, need: Math.max(0, targetStock - currentStock), editTarget: null }
+    })
+  } catch (e: any) { uiStore.addToast('error', e.message) }
+}
+onMounted(fetchList)
 function startEdit(item: any) {
   item.editTarget = item.editTarget ?? item.targetStock
 }
