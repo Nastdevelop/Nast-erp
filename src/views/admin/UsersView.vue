@@ -2,11 +2,11 @@
   <div>
     <PageHeader title="Users" description="Manage system users and permissions">
       <template #actions>
-        <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />Add User</AppButton>
+        <AppButton @click="openCreate"><Plus class="w-3.5 h-3.5" />Add User</AppButton>
       </template>
     </PageHeader>
 
-    <DataTable :columns="columns" :data="mockUsers" search-placeholder="Search users...">
+    <DataTable :columns="columns" :data="items" search-placeholder="Search users...">
       <template #cell-name="{ value, row }">
         <div class="flex items-center gap-2.5">
           <div class="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center shrink-0">
@@ -67,9 +67,13 @@ import StatusBadge from '../../components/ui/StatusBadge.vue'
 import { usersService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
+const loading = ref(true)
 const showForm = ref(false)
 const editingUser = ref<any>(null)
+const items = ref<any[]>([])
 const form = reactive({ name: '', email: '', role: '', password: '' })
+async function fetchList() { loading.value = true; try { const res = await usersService.list(); items.value = res.data } catch (e: any) { uiStore.addToast('error', e.message) } finally { loading.value = false } }
+onMounted(fetchList)
 const columns = [
   { key: 'name', label: 'User' },
   { key: 'role', label: 'Role' },
@@ -89,9 +93,26 @@ const roleVariants: Record<string, any> = {
   ADMIN: 'danger', MANAGER: 'info', PURCHASING: 'warning',
   WAREHOUSE: 'neutral', PRODUCTION: 'success', FINANCE: 'neutral',
 }
+function openCreate() { editingUser.value = null; Object.assign(form, { name: '', email: '', role: '', password: '' }); showForm.value = true }
 function initials(name: string) { return name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() }
 function roleVariant(role: string) { return roleVariants[role] ?? 'neutral' }
-function edit(row: any) { editingUser.value = row; Object.assign(form, row); showForm.value = true }
-function confirmDeactivate(row: any) { uiStore.addToast('success', `User ${row.isActive ? 'deactivated' : 'activated'}.`) }
-function save() { uiStore.addToast('success', editingUser.value ? 'User updated.' : 'User created.'); showForm.value = false; editingUser.value = null }
+function edit(row: any) { editingUser.value = row; Object.assign(form, { name: row.name, email: row.email, role: row.role, password: '' }); showForm.value = true }
+async function confirmDeactivate(row: any) {
+  try { await usersService.update(row.id, { isActive: !row.isActive }); uiStore.addToast('success', `User ${row.isActive ? 'deactivated' : 'activated'}.`); await fetchList() } catch (e: any) { uiStore.addToast('error', e.message) }
+}
+async function save() {
+  if (!form.name || !form.email || !form.role) { uiStore.addToast('error', 'Name, email, role required'); return }
+  try {
+    if (editingUser.value) {
+      const payload: any = { name: form.name, email: form.email, role: form.role }
+      await usersService.update(editingUser.value.id, payload)
+    } else {
+      if (!form.password) { uiStore.addToast('error', 'Password required'); return }
+      await usersService.create({ ...form })
+    }
+    uiStore.addToast('success', editingUser.value ? 'User updated.' : 'User created.')
+    showForm.value = false; editingUser.value = null
+    await fetchList()
+  } catch (e: any) { uiStore.addToast('error', e.message) }
+}
 </script>
