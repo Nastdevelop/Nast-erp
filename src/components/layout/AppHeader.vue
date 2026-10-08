@@ -105,7 +105,7 @@ const breadcrumbs = computed(() => {
   return crumbs
 })
 
-const currentSection = computed(() => null)
+const currentSection = computed((): any => null)
 
 function handleLogout() {
   authStore.logout()

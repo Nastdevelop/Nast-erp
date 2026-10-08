@@ -54,7 +54,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Plus, Pencil, Power } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
@@ -64,7 +64,7 @@ import AppBadge from '../../components/ui/AppBadge.vue'
 import AppModal from '../../components/ui/AppModal.vue'
 import DataTable from '../../components/ui/DataTable.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
-import { mockUsers } from '../../data/mock'
+import { usersService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 const showForm = ref(false)

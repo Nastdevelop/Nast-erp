@@ -3,7 +3,6 @@ import { useAuthStore } from '../stores/auth'
 
 // Layouts
 import AppLayout from '../layouts/AppLayout.vue'
-import AuthLayout from '../layouts/AuthLayout.vue'
 
 // Auth
 import LoginView from '../views/auth/LoginView.vue'
@@ -163,6 +162,10 @@ router.beforeEach((to) => {
     return '/login'
   }
   if (to.path === '/login' && authStore.isAuthenticated) {
+    return '/dashboard'
+  }
+  const roles = to.meta.roles as string[] | undefined
+  if (roles && roles.length && authStore.userRole && !roles.includes(authStore.userRole)) {
     return '/dashboard'
   }
 })

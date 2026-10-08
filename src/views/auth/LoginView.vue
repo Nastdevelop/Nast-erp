@@ -87,12 +87,12 @@ const errors = reactive({ email: '', password: '', general: '' })
 const loading = ref(false)
 
 const demoAccounts = [
-  { role: 'Admin', email: 'admin@erp.com', password: 'password' },
-  { role: 'Manager', email: 'manager@erp.com', password: 'password' },
-  { role: 'Purchasing', email: 'purchasing@erp.com', password: 'password' },
-  { role: 'Warehouse', email: 'warehouse@erp.com', password: 'password' },
-  { role: 'Production', email: 'production@erp.com', password: 'password' },
-  { role: 'Finance', email: 'finance@erp.com', password: 'password' },
+  { role: 'Admin', email: 'admin@nast.com', password: 'password123' },
+  { role: 'Manager', email: 'budi@nast.com', password: 'password123' },
+  { role: 'Purchasing', email: 'sari@nast.com', password: 'password123' },
+  { role: 'Warehouse', email: 'andi@nast.com', password: 'password123' },
+  { role: 'Production', email: 'hendra@nast.com', password: 'password123' },
+  { role: 'Finance', email: 'rina@nast.com', password: 'password123' },
 ]
 
 function fillDemo(demo: { email: string; password: string }) {
@@ -109,15 +109,13 @@ async function handleLogin() {
   if (!form.password) { errors.password = 'Password is required'; return }
 
   loading.value = true
-  await new Promise(r => setTimeout(r, 600))
-
-  const ok = authStore.mockLogin(form.email, form.password)
-  loading.value = false
-
-  if (ok) {
+  try {
+    await authStore.login(form.email, form.password)
     router.push('/dashboard')
-  } else {
-    errors.general = 'Invalid email or password.'
+  } catch (e: any) {
+    errors.general = e.message || 'Invalid email or password.'
+  } finally {
+    loading.value = false
   }
 }
 </script>

@@ -2,7 +2,7 @@
   <div>
     <PageHeader title="Warehouses" description="Manage warehouse locations" :loading="loading">
       <template #actions>
-        <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />Add Warehouse</AppButton>
+        <AppButton @click="openCreate"><Plus class="w-3.5 h-3.5" />Add Warehouse</AppButton>
       </template>
     </PageHeader>
     <template v-if="loading">
@@ -10,18 +10,18 @@
         <SkeletonCard v-for="i in 3" :key="i" />
       </div>
     </template>
-    <template v-else-if="mockWarehouses.length === 0">
+    <template v-else-if="items.length === 0">
       <EmptyState
         title="No warehouses"
         description="Add your first warehouse to start managing inventory locations."
         :icon="Warehouse"
       >
-        <AppButton @click="showForm = true"><Plus class="w-3.5 h-3.5" />Add Warehouse</AppButton>
+        <AppButton @click="openCreate"><Plus class="w-3.5 h-3.5" />Add Warehouse</AppButton>
       </EmptyState>
     </template>
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div v-for="wh in mockWarehouses" :key="wh.id"
+        <div v-for="wh in items" :key="wh.id"
           class="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-5">
           <div class="flex items-start justify-between mb-3">
             <div :class="['w-10 h-10 rounded-lg flex items-center justify-center', warehouseIcon(wh.type).bg]">
@@ -51,13 +51,13 @@
       </div>
       <template #footer>
         <AppButton variant="ghost" @click="showForm = false">Cancel</AppButton>
-        <AppButton @click="save">Save</AppButton>
+        <AppButton :loading="saving" @click="save">Save</AppButton>
       </template>
     </AppModal>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Plus, Warehouse } from 'lucide-vue-next'
 import PageHeader from '../../components/ui/PageHeader.vue'
 import AppButton from '../../components/ui/AppButton.vue'
@@ -68,21 +68,41 @@ import AppModal from '../../components/ui/AppModal.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import EmptyState from '../../components/ui/EmptyState.vue'
 import SkeletonCard from '../../components/ui/SkeletonCard.vue'
-import { mockWarehouses } from '../../data/mock'
+import { warehousesService } from '../../services/crud'
 import { useUiStore } from '../../stores/ui'
 const uiStore = useUiStore()
 const loading = ref(true)
+const saving = ref(false)
 const showForm = ref(false)
+const editingId = ref<string | null>(null)
+const items = ref<any[]>([])
 const form = reactive({ code: '', name: '', type: '' })
 
-// Simulate loading
-setTimeout(() => { loading.value = false }, 500)
+async function fetchList() {
+  loading.value = true
+  try {
+    const res = await warehousesService.list()
+    items.value = res.data
+  } catch (e: any) { uiStore.addToast('error', e.message) } finally { loading.value = false }
+}
+onMounted(fetchList)
 
 function warehouseIcon(type: string) {
   if (type === 'RAW_MATERIAL') return { bg: 'bg-amber-50 dark:bg-amber-950', color: 'text-amber-500', badge: 'warning' as const }
   if (type === 'WIP') return { bg: 'bg-blue-50 dark:bg-blue-950', color: 'text-blue-500', badge: 'info' as const }
   return { bg: 'bg-emerald-50 dark:bg-emerald-950', color: 'text-emerald-500', badge: 'success' as const }
 }
-function edit(row: any) { Object.assign(form, row); showForm.value = true }
-function save() { uiStore.addToast('success', 'Warehouse saved.'); showForm.value = false }
+function openCreate() { editingId.value = null; Object.assign(form, { code: '', name: '', type: '' }); showForm.value = true }
+function edit(row: any) { editingId.value = row.id; Object.assign(form, { code: row.code, name: row.name, type: row.type ?? '' }); showForm.value = true }
+async function save() {
+  if (!form.code || !form.name) { uiStore.addToast('error', 'Code and name required'); return }
+  saving.value = true
+  try {
+    if (editingId.value) await warehousesService.update(editingId.value, { ...form })
+    else await warehousesService.create({ ...form })
+    uiStore.addToast('success', 'Warehouse saved.')
+    showForm.value = false
+    await fetchList()
+  } catch (e: any) { uiStore.addToast('error', e.message) } finally { saving.value = false }
+}
 </script>
