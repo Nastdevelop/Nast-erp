@@ -45,8 +45,8 @@
               : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
           ]"
         >
-          <component :is="item.icon" class="w-4 h-4 shrink-0" />
           <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+          <span class="shrink-0">{{ renderIcon(item.icon) }}</span>
         </RouterLink>
       </div>
     </nav>
@@ -57,8 +57,8 @@
         @click="toggleSidebar"
         class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-sm"
       >
-        <ChevronLeft v-if="!collapsed" class="w-4 h-4" />
-        <ChevronRight v-else class="w-4 h-4" />
+        <span v-if="!collapsed">{{ renderIcon('ChevronLeft') }}</span>
+        <span v-else>{{ renderIcon('ChevronRight') }}</span>
         <span v-if="!collapsed" class="text-xs">Collapse</span>
       </button>
     </div>
@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   LayoutDashboard, Package, Layers, Tag, Ruler, Truck, Users, Warehouse,
@@ -99,86 +99,99 @@ function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
+const iconMap = {
+  LayoutDashboard, Package, Layers, Tag, Ruler, Truck, Users, Warehouse,
+  ListTree, ShoppingCart, ClipboardList, ReceiptText, BoxesIcon, ArrowLeftRight,
+  ClipboardCheck, Factory, BarChart3, CheckSquare, ShoppingBag, PackageCheck,
+  DollarSign, TrendingUp, Calculator, FileBarChart, UserCog,
+  ChevronLeft, ChevronRight
+} as const
+
+function renderIcon(iconName: keyof typeof iconMap) {
+  const Icon = iconMap[iconName]
+  return Icon ? h(Icon, { class: 'w-4 h-4 shrink-0' }) : null
+}
+
 const allSections = [
   {
     title: 'Overview',
     roles: ['ADMIN', 'MANAGER', 'PURCHASING', 'WAREHOUSE', 'PRODUCTION', 'FINANCE'],
     items: [
-      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard' },
     ]
   },
   {
     title: 'Master Data',
     roles: ['ADMIN', 'MANAGER'],
     items: [
-      { label: 'Products', path: '/products', icon: Package },
-      { label: 'Materials', path: '/materials', icon: Layers },
-      { label: 'Categories', path: '/categories', icon: Tag },
-      { label: 'Units', path: '/units', icon: Ruler },
-      { label: 'Suppliers', path: '/suppliers', icon: Truck },
-      { label: 'Customers', path: '/customers', icon: Users },
-      { label: 'Warehouses', path: '/warehouses', icon: Warehouse },
-      { label: 'BOM', path: '/bom', icon: ListTree },
+      { label: 'Products', path: '/products', icon: 'Package' },
+      { label: 'Materials', path: '/materials', icon: 'Layers' },
+      { label: 'Categories', path: '/categories', icon: 'Tag' },
+      { label: 'Units', path: '/units', icon: 'Ruler' },
+      { label: 'Suppliers', path: '/suppliers', icon: 'Truck' },
+      { label: 'Customers', path: '/customers', icon: 'Users' },
+      { label: 'Warehouses', path: '/warehouses', icon: 'Warehouse' },
+      { label: 'BOM', path: '/bom', icon: 'ListTree' },
     ]
   },
   {
     title: 'Purchasing',
     roles: ['ADMIN', 'MANAGER', 'PURCHASING'],
     items: [
-      { label: 'Purchase Requests', path: '/purchasing/requests', icon: ShoppingCart },
-      { label: 'Purchase Orders', path: '/purchasing/orders', icon: ClipboardList },
-      { label: 'Goods Receipt', path: '/purchasing/receipts', icon: ReceiptText },
+      { label: 'Purchase Requests', path: '/purchasing/requests', icon: 'ShoppingCart' },
+      { label: 'Purchase Orders', path: '/purchasing/orders', icon: 'ClipboardList' },
+      { label: 'Goods Receipt', path: '/purchasing/receipts', icon: 'ReceiptText' },
     ]
   },
   {
     title: 'Inventory',
     roles: ['ADMIN', 'MANAGER', 'WAREHOUSE'],
     items: [
-      { label: 'Stock', path: '/inventory', icon: BoxesIcon },
-      { label: 'Stock Movement', path: '/inventory/movements', icon: ArrowLeftRight },
-      { label: 'Stock Transfer', path: '/inventory/transfers', icon: Truck },
-      { label: 'Stock Opname', path: '/inventory/opname', icon: ClipboardCheck },
+      { label: 'Stock', path: '/inventory', icon: 'BoxesIcon' },
+      { label: 'Stock Movement', path: '/inventory/movements', icon: 'ArrowLeftRight' },
+      { label: 'Stock Transfer', path: '/inventory/transfers', icon: 'Truck' },
+      { label: 'Stock Opname', path: '/inventory/opname', icon: 'ClipboardCheck' },
     ]
   },
   {
     title: 'Production',
     roles: ['ADMIN', 'MANAGER', 'PRODUCTION'],
     items: [
-      { label: 'Planning', path: '/production/planning', icon: BarChart3 },
-      { label: 'Production Orders', path: '/production/orders', icon: Factory },
-      { label: 'Results', path: '/production/results', icon: CheckSquare },
-      { label: 'Quality Control', path: '/production/qc', icon: CheckSquare },
+      { label: 'Planning', path: '/production/planning', icon: 'BarChart3' },
+      { label: 'Production Orders', path: '/production/orders', icon: 'Factory' },
+      { label: 'Results', path: '/production/results', icon: 'CheckSquare' },
+      { label: 'Quality Control', path: '/production/qc', icon: 'CheckSquare' },
     ]
   },
   {
     title: 'Sales',
     roles: ['ADMIN', 'MANAGER', 'PURCHASING'],
     items: [
-      { label: 'Sales Orders', path: '/sales/orders', icon: ShoppingBag },
-      { label: 'Deliveries', path: '/sales/deliveries', icon: PackageCheck },
+      { label: 'Sales Orders', path: '/sales/orders', icon: 'ShoppingBag' },
+      { label: 'Deliveries', path: '/sales/deliveries', icon: 'PackageCheck' },
     ]
   },
   {
     title: 'Finance',
     roles: ['ADMIN', 'MANAGER', 'FINANCE'],
     items: [
-      { label: 'Transactions', path: '/finance/transactions', icon: DollarSign },
-      { label: 'Production Cost', path: '/finance/production-cost', icon: TrendingUp },
-      { label: 'HPP', path: '/finance/hpp', icon: Calculator },
+      { label: 'Transactions', path: '/finance/transactions', icon: 'DollarSign' },
+      { label: 'Production Cost', path: '/finance/production-cost', icon: 'TrendingUp' },
+      { label: 'HPP', path: '/finance/hpp', icon: 'Calculator' },
     ]
   },
   {
     title: 'Reports',
     roles: ['ADMIN', 'MANAGER', 'FINANCE'],
     items: [
-      { label: 'Reports', path: '/reports', icon: FileBarChart },
+      { label: 'Reports', path: '/reports', icon: 'FileBarChart' },
     ]
   },
   {
     title: 'Administration',
     roles: ['ADMIN'],
     items: [
-      { label: 'Users', path: '/users', icon: UserCog },
+      { label: 'Users', path: '/users', icon: 'UserCog' },
     ]
   },
 ]

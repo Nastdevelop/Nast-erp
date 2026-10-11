@@ -11,7 +11,7 @@
     <!-- Breadcrumb -->
     <div class="flex-1 flex items-center gap-1.5 text-sm">
       <span class="text-zinc-400 dark:text-zinc-600">
-        <component :is="currentSection?.icon" class="w-3.5 h-3.5" />
+        {{ renderIcon(currentSectionIcon) }}
       </span>
       <template v-for="(crumb, i) in breadcrumbs" :key="crumb.path">
         <span v-if="i > 0" class="text-zinc-300 dark:text-zinc-700">/</span>
@@ -73,9 +73,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
-import { Search, Bell, Moon, Sun, LogOut, Menu } from 'lucide-vue-next'
+import { Search, Bell, Moon, Sun, LogOut, Menu, LayoutDashboard, Package, Layers, Tag, Ruler, Truck, Users, Warehouse, ListTree, ShoppingCart, ClipboardList, ReceiptText, BoxesIcon, ArrowLeftRight, ClipboardCheck, Factory, BarChart3, CheckSquare, ShoppingBag, PackageCheck, DollarSign, TrendingUp, Calculator, FileBarChart, UserCog } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useThemeStore } from '../../stores/theme'
 
@@ -105,7 +105,54 @@ const breadcrumbs = computed(() => {
   return crumbs
 })
 
-const currentSection = computed((): any => null)
+const iconMap = {
+  LayoutDashboard, Package, Layers, Tag, Ruler, Truck, Users, Warehouse,
+  ListTree, ShoppingCart, ClipboardList, ReceiptText, BoxesIcon, ArrowLeftRight,
+  ClipboardCheck, Factory, BarChart3, CheckSquare, ShoppingBag, PackageCheck,
+  DollarSign, TrendingUp, Calculator, FileBarChart, UserCog,
+  Search, Bell, Moon, Sun, LogOut, Menu
+} as const
+
+function renderIcon(iconName: keyof typeof iconMap) {
+  const Icon = iconMap[iconName]
+  return Icon ? h(Icon, { class: 'w-3.5 h-3.5' }) : null
+}
+
+const sectionIconMap: Record<string, keyof typeof iconMap> = {
+  dashboard: 'LayoutDashboard',
+  products: 'Package',
+  materials: 'Layers',
+  categories: 'Tag',
+  units: 'Ruler',
+  suppliers: 'Truck',
+  customers: 'Users',
+  warehouses: 'Warehouse',
+  bom: 'ListTree',
+  'purchasing/requests': 'ShoppingCart',
+  'purchasing/orders': 'ClipboardList',
+  'purchasing/receipts': 'ReceiptText',
+  inventory: 'BoxesIcon',
+  'inventory/movements': 'ArrowLeftRight',
+  'inventory/transfers': 'Truck',
+  'inventory/opname': 'ClipboardCheck',
+  'production/planning': 'BarChart3',
+  'production/orders': 'Factory',
+  'production/results': 'CheckSquare',
+  'production/qc': 'CheckSquare',
+  'sales/orders': 'ShoppingBag',
+  'sales/deliveries': 'PackageCheck',
+  'finance/transactions': 'DollarSign',
+  'finance/production-cost': 'TrendingUp',
+  'finance/hpp': 'Calculator',
+  reports: 'FileBarChart',
+  users: 'UserCog',
+}
+
+const currentSectionIcon = computed(() => {
+  const parts = route.path.split('/').filter(Boolean)
+  const key = parts.slice(0, 2).join('/')
+  return sectionIconMap[key] || 'LayoutDashboard'
+})
 
 function handleLogout() {
   authStore.logout()
